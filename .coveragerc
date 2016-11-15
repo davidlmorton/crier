@@ -1,0 +1,6 @@
+[run]
+branch = True
+source = crier
+
+[report]
+show_missing = True
