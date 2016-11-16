@@ -34,8 +34,10 @@ class TestWebserver(unittest.TestCase):
         print "Found the following records: %s" % pformat(records)
 
         self.assertEqual(2, len(records))
-        self.assertEqual(first_body, records[0])
-        self.assertEqual(second_body, records[1])
+        self.assertEqual(first_body, records[0]['data'])
+        self.assertEqual(second_body, records[1]['data'])
+        self.assertEqual('application/json',
+                records[1]['headers']['Content-Type'])
 
     def post(self, url, data):
         return requests.post(url,

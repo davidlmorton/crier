@@ -3,6 +3,7 @@
 from __future__ import print_function
 from flask import Flask, request
 import argparse
+import json
 import signal
 import sys
 
@@ -47,7 +48,13 @@ app = Flask(__name__)
 
 @app.route('/', methods=['POST'])
 def log_request():
-    print(request.data)
+    request_info = {
+        'url': request.url,
+        'headers': dict(request.headers),
+        'data': request.get_json(),
+        'args': dict(request.args),
+    }
+    print(' - ' + json.dumps(request_info))
     return '', next_response_code()
 
 

@@ -1,4 +1,4 @@
-import json
+import yaml
 import subprocess
 import time
 
@@ -11,6 +11,8 @@ class Webserver:
         self.timeout = timeout
 
         self._webserver = None
+        self._webserver_stdout = None
+        self._webserver_stderr = None
 
     def start(self):
         if self._webserver:
@@ -25,6 +27,13 @@ class Webserver:
         self._wait()
         self._port = int(self._webserver.stderr.readline().rstrip())
 
+    @property
+    def history(self):
+        if self._webserver_stdout is None:
+            return []
+        else:
+            return yaml.load(self._webserver_stdout)
+
     def stop(self):
         while self._webserver is not None:
             exit_code = self._webserver.poll()
@@ -35,7 +44,7 @@ class Webserver:
                     self._webserver_stdout = stdout
                     self._webserver_stderr = stderr
 
-                    return map(json.loads, stdout.split('\n')[:-1])
+                    return self.history
                 elif exit_code == -14:
                     raise RuntimeError(
                             "Webserver timed out after (%s) seconds" %
