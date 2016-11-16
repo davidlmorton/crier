@@ -16,7 +16,7 @@ class Webserver:
         if self._webserver:
             return
         command_line = ['crier',
-                        '--stop-after', str(self.timeout),
+                        '--timeout', str(self.timeout),
                         '--response-codes']
         command_line.extend(map(str, self.response_codes))
         self._webserver = subprocess.Popen(

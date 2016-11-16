@@ -12,7 +12,7 @@ _RESPONSE_CODES = []
 
 def parse_arguments():
     parser = argparse.ArgumentParser()
-    parser.add_argument('--stop-after', type=int, default=10)
+    parser.add_argument('--timeout', type=int, default=10)
     parser.add_argument('--response-codes', nargs='+', type=int)
 
     arguments = parser.parse_args()
@@ -60,7 +60,7 @@ def shutdown_server():
 
 if __name__ == '__main__':
     arguments = parse_arguments()
-    signal.alarm(arguments.stop_after)
+    signal.alarm(arguments.timeout)
     port = get_open_port()
     print(port, file=sys.stderr)
     app.run(port=port)
