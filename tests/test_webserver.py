@@ -7,18 +7,29 @@ import unittest
 
 class TestWebserver(unittest.TestCase):
     def test_timeout(self):
-        server = Webserver(response_codes=[200], timeout=1)
+        scripts = [{
+            'status_code': 200
+        }]
+        server = Webserver(scripts=scripts, timeout=1)
         server.start()
         with self.assertRaises(RuntimeError):
             server.stop()
 
     def test_stop_before_start(self):
-        server = Webserver(response_codes=[200], timeout=1)
+        scripts = [{
+            'status_code': 200
+        }]
+        server = Webserver(scripts=scripts, timeout=1)
         records = server.stop()
         self.assertEqual(None, records)
 
     def test_normal_exit(self):
-        server = Webserver(response_codes=[202, 205], timeout=10)
+        scripts = [{
+            'status_code': 202
+        }, {
+            'status_code': 205
+        }]
+        server = Webserver(scripts=scripts, timeout=10)
         server.start()
         server.start()  # does nothing
 
@@ -29,6 +40,10 @@ class TestWebserver(unittest.TestCase):
         second_body = {'foo': 'bar'}
         response = self.post(server.url, second_body)
         self.assertEqual(205, response.status_code)
+
+        # Server should have shut down after two requests
+        with self.assertRaises(Exception):
+            self.post(server.url, second_body)
 
         records = server.stop()
         print "Found the following records: %s" % pformat(records)

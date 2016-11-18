@@ -1,3 +1,4 @@
+import json
 import yaml
 import subprocess
 import time
@@ -6,8 +7,8 @@ __all__ = ['Webserver']
 
 
 class Webserver:
-    def __init__(self, response_codes, timeout=25):
-        self.response_codes = response_codes
+    def __init__(self, scripts, timeout=25):
+        self.scripts = scripts
         self.timeout = timeout
 
         self._webserver = None
@@ -19,8 +20,8 @@ class Webserver:
             return
         command_line = ['crier',
                         '--timeout', str(self.timeout),
-                        '--response-codes']
-        command_line.extend(map(str, self.response_codes))
+                        '--scripts']
+        command_line.append(json.dumps(self.scripts))
         self._webserver = subprocess.Popen(
             command_line, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 
