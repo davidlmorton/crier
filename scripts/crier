@@ -3,6 +3,7 @@
 from __future__ import print_function
 from argparse import RawTextHelpFormatter
 from flask import Flask, request
+from flask_restful import Resource, Api
 import argparse
 import json
 import signal
@@ -14,29 +15,51 @@ from crier.validator import load_and_validate, SCHEMA
 class Orchestrator:
     def __init__(self):
         self.scripts = []
-        self.count = 0
+        self.active_script_idx = 0
 
-    def set_scripts(self, scripts):
-        self.scripts = scripts
+    def set_scripts(self, scripts_data):
+        for script_data in scripts_data:
+            self.scripts.append(Script(**script_data))
+        self.active_script_idx = 0
+
+    @property
+    def active_script(self):
+        return self.scripts[self.active_script_idx]
+
+    def next_response(self):
+        if not self.is_done:
+            result = self.active_script.next_response()
+            if self.active_script.is_done:
+                self.active_script_idx += 1
+            return result
+        else:
+            raise RuntimeError("No more scripts")
+
+    @property
+    def is_done(self):
+        return self.active_script_idx >= len(self.scripts)
+
+class Script:
+    def __init__(self, status_code, headers=None, response=None, repeat=0):
+        self.status_code = status_code
+        self.headers = headers if headers is not None else {}
+        self.response = response if response is not None else {}
+        self.repeat = repeat
         self.count = 0
 
     def next_response(self):
         if not self.is_done:
             self.count += 1
-            return self.response_tuple(self.scripts[self.count - 1])
+            return self.response, self.status_code, self.headers
         else:
-            raise RuntimeError("No more scripts")
-
-    @staticmethod
-    def response_tuple(script):
-        body = script.get('response', '')
-        status_code = script['status_code']
-        headers = script.get('headers', {})
-        return body, status_code, headers
+            raise RuntimeError("Script repeated too many times")
 
     @property
     def is_done(self):
-        return len(self.scripts) <= self.count
+        if self.repeat == -1:
+            return False
+        else:
+            return self.count > self.repeat
 
 
 def parse_arguments():
@@ -47,8 +70,10 @@ jsonschema for --scripts option:
 """ + SCHEMA
     parser = argparse.ArgumentParser(description=description,
             formatter_class=RawTextHelpFormatter)
-    parser.add_argument('--timeout', type=int, default=10)
-    parser.add_argument('--scripts', type=str, help='A JSON formatted list of scripts. See jsonschema above.')
+    parser.add_argument('--timeout', type=int)
+    parser.add_argument('--scripts', type=str,
+            default='[{"status_code": 200, "repeat": -1}]',
+            help='A JSON formatted list of scripts. See jsonschema above. (default: %(default)s)')
 
     arguments = parser.parse_args()
 
@@ -70,22 +95,21 @@ def get_open_port():
 orchestrator = Orchestrator()
 app = Flask(__name__)
 
+class TheOnlyResource(Resource):
+    def post(self):
+        request_info = {
+            'url': request.url,
+            'headers': dict(request.headers),
+            'data': request.get_json(),
+            'args': dict(request.args),
+        }
+        print(' - ' + json.dumps(request_info))
 
-@app.route('/', methods=['POST'])
-def log_request():
-    request_info = {
-        'url': request.url,
-        'headers': dict(request.headers),
-        'data': request.get_json(),
-        'args': dict(request.args),
-    }
-    print(' - ' + json.dumps(request_info))
+        rv = orchestrator.next_response()
+        if orchestrator.is_done:
+            shutdown_server()
 
-    rv = orchestrator.next_response()
-    if orchestrator.is_done:
-        shutdown_server()
-
-    return rv
+        return rv
 
 
 def shutdown_server():
@@ -96,12 +120,16 @@ def shutdown_server():
 
 
 if __name__ == '__main__':
+    api = Api(app)
+    api.add_resource(TheOnlyResource, '/')
+
     arguments = parse_arguments()
 
-    scripts = load_and_validate(arguments.scripts)
-    orchestrator.set_scripts(scripts)
+    scripts_data = load_and_validate(arguments.scripts)
+    orchestrator.set_scripts(scripts_data)
 
-    signal.alarm(arguments.timeout)
+    if arguments.timeout is not None:
+        signal.alarm(arguments.timeout)
     port = get_open_port()
 
     print(port, file=sys.stderr)
