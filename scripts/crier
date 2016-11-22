@@ -9,7 +9,7 @@ import json
 import signal
 import sys
 
-from crier.validator import load_and_validate, SCHEMA
+from crier.script import Script, SCHEMA
 from crier.orchestrator import Orchestrator
 
 
@@ -76,8 +76,8 @@ if __name__ == '__main__':
 
     arguments = parse_arguments()
 
-    scripts_data = load_and_validate(arguments.scripts)
-    orchestrator.set_scripts(scripts_data)
+    scripts = Script.from_string(arguments.scripts)
+    orchestrator.set_scripts(scripts)
 
     if arguments.timeout is not None:
         signal.alarm(arguments.timeout)

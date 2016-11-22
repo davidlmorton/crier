@@ -37,3 +37,10 @@ class TestScript(unittest.TestCase):
         self.assertFalse(s.is_done)
         self.assertEqual(expected_response, s.next_response())
         self.assertFalse(s.is_done)
+
+    def test_classmethod(self):
+        string = '[{"status_code": 200}, {"status_code": 300}]'
+        scripts = Script.from_string(string)
+        self.assertEqual(2, len(scripts))
+        self.assertEqual(200, scripts[0].status_code)
+        self.assertEqual(300, scripts[1].status_code)

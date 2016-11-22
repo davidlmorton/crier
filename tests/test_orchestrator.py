@@ -1,5 +1,7 @@
 import unittest
+import json
 from crier.orchestrator import Orchestrator
+from crier.script import Script
 
 
 class TestOrchestrator(unittest.TestCase):
@@ -17,7 +19,7 @@ class TestOrchestrator(unittest.TestCase):
             'response': response,
             'repeat': 1,
         }]
-        o.set_scripts(scripts_data)
+        o.set_scripts(Script.from_string(json.dumps(scripts_data)))
 
         expected_response = (response, status_code, headers)
         self.assertFalse(o.is_done)

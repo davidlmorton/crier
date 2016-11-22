@@ -1,14 +1,10 @@
-from crier.script import Script
-
-
 class Orchestrator:
     def __init__(self):
         self.scripts = []
         self.active_script_idx = 0
 
-    def set_scripts(self, scripts_data):
-        for script_data in scripts_data:
-            self.scripts.append(Script(**script_data))
+    def set_scripts(self, scripts):
+        self.scripts = scripts
         self.active_script_idx = 0
 
     @property
