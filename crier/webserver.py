@@ -1,3 +1,5 @@
+from crier.script import Script
+
 import json
 import yaml
 import subprocess
@@ -7,7 +9,8 @@ __all__ = ['Webserver']
 
 
 class Webserver:
-    def __init__(self, scripts, timeout=25):
+    def __init__(self, scripts, port=None, timeout=25):
+        self.port = port
         self.scripts = scripts
         self.timeout = timeout
 
@@ -15,13 +18,27 @@ class Webserver:
         self._webserver_stdout = None
         self._webserver_stderr = None
 
+    @property
+    def scripts_string(self):
+        pure_data = []
+        for script in self.scripts:
+            if isinstance(script, Script):
+                pure_data.append(script.as_dict)
+            else:
+                pure_data.append(script)
+        return pure_data
+
     def start(self):
         if self._webserver:
             return
         command_line = ['crier',
                         '--timeout', str(self.timeout),
                         '--scripts']
-        command_line.append(json.dumps(self.scripts))
+        command_line.append(json.dumps(self.scripts_string))
+
+        if self.port is not None:
+            command_line.extend(['--port', str(self.port)])
+
         self._webserver = subprocess.Popen(
             command_line, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 

@@ -4,13 +4,15 @@ from __future__ import print_function
 from argparse import RawTextHelpFormatter
 from flask import Flask, request
 from flask_restful import Resource, Api
+from multiprocessing import Process
 import argparse
 import json
+import requests
 import signal
 import sys
 
 from crier.script import Script, SCHEMA
-from crier.orchestrator import Orchestrator
+from crier.script_master import ScriptMaster
 
 
 def parse_arguments():
@@ -21,10 +23,11 @@ jsonschema for --scripts option:
 """ + SCHEMA
     parser = argparse.ArgumentParser(description=description,
             formatter_class=RawTextHelpFormatter)
-    parser.add_argument('--timeout', type=int)
+    parser.add_argument('--port', type=int)
     parser.add_argument('--scripts', type=str,
             default='[{"status_code": 200, "repeat": -1}]',
             help='A JSON formatted list of scripts. See jsonschema above. (default: %(default)s)')
+    parser.add_argument('--timeout', type=int)
 
     arguments = parser.parse_args()
 
@@ -43,7 +46,7 @@ def get_open_port():
     return port
 
 
-orchestrator = Orchestrator()
+script_master = ScriptMaster()
 app = Flask(__name__)
 
 class TheOnlyResource(Resource):
@@ -56,11 +59,20 @@ class TheOnlyResource(Resource):
         }
         print(' - ' + json.dumps(request_info))
 
-        rv = orchestrator.next_response()
-        if orchestrator.is_done:
-            shutdown_server()
+        script = script_master.current_script
 
-        return rv
+        after = script.after_response
+        if after is not None:
+            kwargs = {
+                'method': after['method'],
+                'url': after['url'],
+                'json': after['body']
+            }
+            Process(target=requests.request, kwargs=kwargs).start()
+
+        if script_master.advance():
+            shutdown_server()
+        return script.response, script.status_code, script.headers
 
 
 def shutdown_server():
@@ -77,11 +89,15 @@ if __name__ == '__main__':
     arguments = parse_arguments()
 
     scripts = Script.from_string(arguments.scripts)
-    orchestrator.set_scripts(scripts)
+    script_master.set_scripts(scripts)
 
     if arguments.timeout is not None:
         signal.alarm(arguments.timeout)
-    port = get_open_port()
+
+    if arguments.port is not None:
+        port = arguments.port
+    else:
+        port = get_open_port()
 
     print(port, file=sys.stderr)
     app.run(port=port)

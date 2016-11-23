@@ -25,13 +25,38 @@ SCHEMA = """
             "default": 0,
             "description": "Number of times to repeat this script, -1 means repeat forever"
         },
+        "url": {
+            "type": "string"
+        },
+        "method": {
+            "type": "string",
+            "pattern": "(POST|PUT|GET)"
+        },
+        "body": {
+            "type": "object"
+        },
+        "after_response": {
+            "type": "object",
+            "properties": {
+                "url": { "$ref": "#/definitions/url"},
+                "method": { "$ref": "#/definitions/method"},
+                "body": { "$ref": "#/definitions/body"}
+            },
+            "requiredProperties": [
+                "url",
+                "method",
+                "body"
+            ],
+            "additionalProperties": false
+        },
         "script": {
             "type": "object",
             "properties": {
                 "response": { "$ref": "#/definitions/response"},
                 "status_code": { "$ref": "#/definitions/status_code"},
                 "headers": { "$ref": "#/definitions/headers"},
-                "repeat": { "$ref": "#/definitions/repeat"}
+                "repeat": { "$ref": "#/definitions/repeat"},
+                "after_response": { "$ref": "#/definitions/after_response"}
             },
             "requiredProperties": [
                 "status_code"
@@ -47,26 +72,16 @@ SCHEMA = """
 
 
 class Script:
-    def __init__(self, status_code, headers=None, response=None, repeat=0):
+    def __init__(self, status_code,
+            headers=None,
+            response=None,
+            after_response=None,
+            repeat=0):
         self.status_code = status_code
         self.headers = headers if headers is not None else {}
         self.response = response if response is not None else {}
+        self.after_response = after_response
         self.repeat = repeat
-        self.count = 0
-
-    def next_response(self):
-        if not self.is_done:
-            self.count += 1
-            return self.response, self.status_code, self.headers
-        else:
-            raise RuntimeError("Script repeated too many times")
-
-    @property
-    def is_done(self):
-        if self.repeat == -1:
-            return False
-        else:
-            return self.count > self.repeat
 
     @classmethod
     def from_string(cls, string):
@@ -80,3 +95,17 @@ class Script:
             scripts.append(cls(**script_info))
 
         return scripts
+
+    @property
+    def as_dict(self):
+        result = {
+            'status_code': self.status_code,
+            'headers': self.headers,
+            'response': self.response,
+            'repeat': self.repeat,
+        }
+
+        if self.after_response is not None:
+            result['after_response'] = self.after_response
+
+        return result
