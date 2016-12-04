@@ -51,22 +51,26 @@ app = Flask(__name__)
 
 class TheOnlyResource(Resource):
     def post(self):
+        request_body = request.get_json()
         request_info = {
             'url': request.url,
             'headers': dict(request.headers),
-            'data': request.get_json(),
+            'data': request_body,
             'args': dict(request.args),
         }
         print(' - ' + json.dumps(request_info))
 
         script = script_master.current_script
 
-        after = script.after_response
-        if after is not None:
+        if script.after_response is not None:
+            item = request_body
+            for key in script.after_response.split('.'):
+                item = item[key]
             kwargs = {
-                'method': after['method'],
-                'url': after['url'],
-                'json': after['body']
+                'method': item['method'],
+                'url': item['url'],
+                'json': item['body'],
+                'headers': item['headers']
             }
             Process(target=requests.request, kwargs=kwargs).start()
 

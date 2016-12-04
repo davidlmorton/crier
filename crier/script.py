@@ -25,29 +25,9 @@ SCHEMA = """
             "default": 0,
             "description": "Number of times to repeat this script, -1 means repeat forever"
         },
-        "url": {
-            "type": "string"
-        },
-        "method": {
+        "xpath": {
             "type": "string",
-            "pattern": "(POST|PUT|GET)"
-        },
-        "body": {
-            "type": "object"
-        },
-        "after_response": {
-            "type": "object",
-            "properties": {
-                "url": { "$ref": "#/definitions/url"},
-                "method": { "$ref": "#/definitions/method"},
-                "body": { "$ref": "#/definitions/body"}
-            },
-            "requiredProperties": [
-                "url",
-                "method",
-                "body"
-            ],
-            "additionalProperties": false
+            "pattern": "[a-zA-Z0-9]+([a-zA-Z0-9_-]*[.][a-zA-Z0-9_-]+)*"
         },
         "script": {
             "type": "object",
@@ -56,7 +36,7 @@ SCHEMA = """
                 "status_code": { "$ref": "#/definitions/status_code"},
                 "headers": { "$ref": "#/definitions/headers"},
                 "repeat": { "$ref": "#/definitions/repeat"},
-                "after_response": { "$ref": "#/definitions/after_response"}
+                "after_response": { "$ref": "#/definitions/xpath" }
             },
             "requiredProperties": [
                 "status_code"
