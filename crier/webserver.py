@@ -43,7 +43,17 @@ class Webserver:
             command_line, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 
         self._wait()
-        self._port = int(self._webserver.stderr.readline().rstrip())
+        line = self._webserver.stderr.readline().rstrip()
+
+        try:
+            self._port = int(line)
+        except:
+            # this ensures that the reason the crier subprocess didn't start is
+            # printed before the exception traceback.
+            print line
+            for line in self._webserver.stderr.readlines():
+                print line.rstrip()
+            raise
 
     @property
     def history(self):
