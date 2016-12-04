@@ -28,7 +28,7 @@ class TestTriggers(unittest.TestCase):
                     'fail': {
                         'method': 'POST',
                         'url': 'http://localhost:%s/' % a.port,
-                        'body': {},
+                        'json': {},
                         'headers': {'x-foo': 'bar'},
                     },
                 }
@@ -41,7 +41,7 @@ class TestTriggers(unittest.TestCase):
                     'success': {
                         'method': 'POST',
                         'url': 'http://localhost:%s/' % b.port,
-                        'body': to_b_from_a,
+                        'json': to_b_from_a,
                         'headers': {},
                     },
                 }

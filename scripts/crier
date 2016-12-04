@@ -66,13 +66,7 @@ class TheOnlyResource(Resource):
             item = request_body
             for key in script.after_response.split('.'):
                 item = item[key]
-            kwargs = {
-                'method': item['method'],
-                'url': item['url'],
-                'json': item['body'],
-                'headers': item['headers']
-            }
-            Process(target=requests.request, kwargs=kwargs).start()
+            Process(target=requests.request, kwargs=item).start()
 
         if script_master.advance():
             shutdown_server()
